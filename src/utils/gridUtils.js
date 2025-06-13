@@ -33,6 +33,9 @@ export const addGridToCanvas = (canvas) => {
     gridLines.push(line);
   }
 
-  gridLines.forEach(line => canvas.add(line));
-  canvas.sendToBack(...gridLines);
+  // Add all grid lines to canvas
+  gridLines.forEach(line => {
+    canvas.add(line);
+    canvas.sendToBack(line); // Send each line to back individually
+  });
 };
