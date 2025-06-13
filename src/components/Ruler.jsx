@@ -1,5 +1,5 @@
 
-export const Ruler = ({ orientation, length, zoom = 1, offset = 0 }) => {
+export const Ruler = ({ orientation, length, zoom = 1, offset = 0, mousePosition = { x: 0, y: 0 } }) => {
   const scale = zoom;
   const unit = 10; // pixels per unit
   const majorTick = 50; // major tick every 50 pixels
@@ -79,9 +79,34 @@ export const Ruler = ({ orientation, length, zoom = 1, offset = 0 }) => {
     return ticks;
   };
 
+  const renderMouseIndicator = () => {
+    if (orientation === 'horizontal') {
+      return (
+        <div
+          className="absolute w-px h-8 bg-red-500 opacity-80 z-10"
+          style={{
+            left: mousePosition.x * scale + offset,
+            top: 0,
+          }}
+        />
+      );
+    } else {
+      return (
+        <div
+          className="absolute w-8 h-px bg-red-500 opacity-80 z-10"
+          style={{
+            top: mousePosition.y * scale + offset,
+            left: 0,
+          }}
+        />
+      );
+    }
+  };
+
   return (
     <div className="relative w-full h-full bg-gray-100">
       {renderTicks()}
+      {renderMouseIndicator()}
     </div>
   );
 };

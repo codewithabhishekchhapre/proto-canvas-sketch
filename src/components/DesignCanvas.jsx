@@ -1,8 +1,9 @@
-
 import { useRef, useState } from "react";
 import { Toolbar } from "./Toolbar";
 import { Ruler } from "./Ruler";
 import { ScreenSizeSelector } from "./ScreenSizeSelector";
+import { MouseCoordinates } from "./MouseCoordinates";
+import { AxisGuides } from "./AxisGuides";
 import { toast } from "sonner";
 import { useCanvas } from "../hooks/useCanvas";
 import { useCanvasTools } from "../hooks/useCanvasTools";
@@ -15,7 +16,17 @@ export const DesignCanvas = () => {
   const [showGrid, setShowGrid] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ 
+    x: 0, 
+    y: 0, 
+    canvasX: 0, 
+    canvasY: 0, 
+    screenX: 0, 
+    screenY: 0 
+  });
+  const [showCoordinates, setShowCoordinates] = useState(false);
+  const [showGuides, setShowGuides] = useState(false);
+  const [hasObjects, setHasObjects] = useState(false);
 
   // Screen size presets
   const screenSizes = {
@@ -43,6 +54,31 @@ export const DesignCanvas = () => {
     fabricCanvas.off('mouse:down');
     fabricCanvas.on('mouse:down', (e) => {
       handleMouseDown(e, activeTool);
+      // Check if we have objects to show guides
+      const objects = fabricCanvas.getObjects().filter(obj => !obj.excludeFromExport);
+      setHasObjects(objects.length > 0);
+    });
+
+    // Track mouse enter/leave for coordinates display
+    fabricCanvas.on('mouse:over', () => {
+      setShowCoordinates(true);
+      if (hasObjects) setShowGuides(true);
+    });
+
+    fabricCanvas.on('mouse:out', () => {
+      setShowCoordinates(false);
+      setShowGuides(false);
+    });
+
+    // Update object count when objects are added/removed
+    fabricCanvas.on('object:added', () => {
+      const objects = fabricCanvas.getObjects().filter(obj => !obj.excludeFromExport);
+      setHasObjects(objects.length > 0);
+    });
+
+    fabricCanvas.on('object:removed', () => {
+      const objects = fabricCanvas.getObjects().filter(obj => !obj.excludeFromExport);
+      setHasObjects(objects.length > 0);
     });
   }
 
@@ -57,6 +93,8 @@ export const DesignCanvas = () => {
     if (fabricCanvas) {
       const objects = fabricCanvas.getObjects().filter(obj => !obj.excludeFromExport);
       objects.forEach(obj => fabricCanvas.remove(obj));
+      setHasObjects(false);
+      setShowGuides(false);
       toast("Canvas cleared!");
     }
   };
@@ -68,6 +106,13 @@ export const DesignCanvas = () => {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
+      {/* Mouse coordinates display */}
+      <MouseCoordinates 
+        mousePosition={mousePosition}
+        zoom={zoom}
+        showCoordinates={showCoordinates}
+      />
+
       {/* Top toolbar */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
         <Toolbar 
@@ -96,6 +141,7 @@ export const DesignCanvas = () => {
             length={canvasSize.height} 
             zoom={zoom}
             offset={30}
+            mousePosition={mousePosition}
           />
         </div>
 
@@ -108,21 +154,30 @@ export const DesignCanvas = () => {
               length={canvasSize.width} 
               zoom={zoom}
               offset={8}
+              mousePosition={mousePosition}
             />
           </div>
 
           {/* Canvas container */}
           <div 
             ref={containerRef}
-            className="flex-1 overflow-auto bg-gray-200 p-8"
+            className="flex-1 overflow-auto bg-gray-200 p-8 relative"
           >
             <div 
-              className="bg-white shadow-lg mx-auto"
+              className="bg-white shadow-lg mx-auto relative"
               style={{ 
                 width: canvasSize.width * zoom, 
                 height: canvasSize.height * zoom 
               }}
             >
+              {/* Axis guides overlay */}
+              <AxisGuides 
+                mousePosition={mousePosition}
+                canvasSize={canvasSize}
+                zoom={zoom}
+                showGuides={showGuides && hasObjects}
+              />
+              
               <canvas ref={canvasRef} />
             </div>
           </div>
@@ -134,6 +189,7 @@ export const DesignCanvas = () => {
         <div className="flex items-center gap-4">
           <span>Mouse: {mousePosition.x}, {mousePosition.y}</span>
           <span>Canvas: {canvasSize.width} × {canvasSize.height}</span>
+          <span>Center: {Math.round(canvasSize.width / 2)}, {Math.round(canvasSize.height / 2)}</span>
         </div>
         <div className="flex items-center gap-4">
           <span>Zoom: {Math.round(zoom * 100)}%</span>

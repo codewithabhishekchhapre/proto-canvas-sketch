@@ -21,10 +21,20 @@ export const useCanvas = (canvasRef, canvasSize, showGrid, activeTool, setMouseP
       addGridToCanvas(canvas);
     }
 
-    // Mouse tracking
+    // Enhanced mouse tracking with screen coordinates
     canvas.on('mouse:move', (e) => {
       const pointer = canvas.getPointer(e.e);
-      setMousePosition({ x: Math.round(pointer.x), y: Math.round(pointer.y) });
+      const canvasElement = canvas.getElement();
+      const rect = canvasElement.getBoundingClientRect();
+      
+      setMousePosition({ 
+        x: Math.round(pointer.x), 
+        y: Math.round(pointer.y),
+        canvasX: Math.round(pointer.x),
+        canvasY: Math.round(pointer.y),
+        screenX: e.e.clientX,
+        screenY: e.e.clientY
+      });
     });
 
     // Tool interactions
