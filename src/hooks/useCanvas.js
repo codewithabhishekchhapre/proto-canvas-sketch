@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { Canvas as FabricCanvas } from "fabric";
 import { addGridToCanvas } from "../utils/gridUtils";
 
-export const useCanvas = (canvasRef, canvasSize, showGrid, activeTool, setMousePosition, onMouseDown) => {
+export const useCanvas = (canvasRef, canvasSize, showGrid, activeTool, setMousePosition, onMouseDown, zoom = 1, gridSize = 20) => {
   const [fabricCanvas, setFabricCanvas] = useState(null);
 
   useEffect(() => {
@@ -18,7 +17,7 @@ export const useCanvas = (canvasRef, canvasSize, showGrid, activeTool, setMouseP
 
     // Add grid background
     if (showGrid) {
-      addGridToCanvas(canvas);
+      addGridToCanvas(canvas, gridSize, zoom);
     }
 
     // Enhanced mouse tracking with screen coordinates
@@ -47,7 +46,14 @@ export const useCanvas = (canvasRef, canvasSize, showGrid, activeTool, setMouseP
     return () => {
       canvas.dispose();
     };
-  }, [canvasRef, canvasSize, showGrid, activeTool, setMousePosition, onMouseDown]);
+  }, [canvasRef, canvasSize, showGrid, activeTool, setMousePosition, onMouseDown, zoom, gridSize]);
+
+  // Re-add grid on zoom or size change
+  useEffect(() => {
+    if (fabricCanvas && showGrid) {
+      addGridToCanvas(fabricCanvas, gridSize, zoom);
+    }
+  }, [fabricCanvas, showGrid, zoom, canvasSize.width, canvasSize.height, gridSize]);
 
   return fabricCanvas;
 };

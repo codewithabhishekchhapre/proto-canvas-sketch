@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { Toolbar } from "./Toolbar";
-import { Ruler } from "./Ruler";
+import { VerticalRuler, HorizontalRuler } from "./Ruler";
 import { ScreenSizeSelector } from "./ScreenSizeSelector";
 import { MouseCoordinates } from "./MouseCoordinates";
 import { AxisGuides } from "./AxisGuides";
 import { toast } from "sonner";
 import { useCanvas } from "../hooks/useCanvas";
 import { useCanvasTools } from "../hooks/useCanvasTools";
+import { MovableFrame } from "./MovableFrame";
 
 export const DesignCanvas = () => {
   const canvasRef = useRef(null);
@@ -27,6 +28,13 @@ export const DesignCanvas = () => {
   const [showCoordinates, setShowCoordinates] = useState(false);
   const [showGuides, setShowGuides] = useState(false);
   const [hasObjects, setHasObjects] = useState(false);
+  const [rulerHover, setRulerHover] = useState({
+    show: false,
+    x: 0,
+    y: 0,
+    axis: null, // 'x' or 'y'
+    value: 0,
+  });
 
   // Screen size presets
   const screenSizes = {
@@ -43,7 +51,8 @@ export const DesignCanvas = () => {
     showGrid,
     activeTool,
     setMousePosition,
-    () => {} // Placeholder that will be replaced
+    () => {}, // Placeholder that will be replaced
+    zoom // Pass zoom for responsive grid
   );
 
   // Initialize canvas tools hook
@@ -62,7 +71,7 @@ export const DesignCanvas = () => {
     // Track mouse enter/leave for coordinates display
     fabricCanvas.on('mouse:over', () => {
       setShowCoordinates(true);
-      if (hasObjects) setShowGuides(true);
+      setShowGuides(true);
     });
 
     fabricCanvas.on('mouse:out', () => {
@@ -106,13 +115,20 @@ export const DesignCanvas = () => {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
-      {/* Mouse coordinates display */}
-      <MouseCoordinates 
-        mousePosition={mousePosition}
-        zoom={zoom}
-        showCoordinates={showCoordinates}
+      {/* Mouse coordinates display for canvas */}
+      <MouseCoordinates
+        show={showCoordinates && !rulerHover.show}
+        x={mousePosition.screenX}
+        y={mousePosition.screenY}
+        label={`${mousePosition.x}, ${mousePosition.y}`}
       />
-
+      {/* Mouse coordinates display for ruler */}
+      <MouseCoordinates
+        show={rulerHover.show}
+        x={rulerHover.axis === 'x' ? rulerHover.x : 40}
+        y={rulerHover.axis === 'y' ? rulerHover.y : 40}
+        label={rulerHover.value}
+      />
       {/* Top toolbar */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
         <Toolbar 
@@ -131,33 +147,32 @@ export const DesignCanvas = () => {
           onSizeChange={handleScreenSizeChange}
         />
       </div>
-
       {/* Canvas area with rulers */}
       <div className="flex-1 flex">
         {/* Vertical ruler */}
-        <div className="w-8 bg-gray-100 border-r border-gray-200">
-          <Ruler 
-            orientation="vertical" 
-            length={canvasSize.height} 
+        <div className="w-8 bg-gray-100 border-r border-gray-200 relative">
+          <VerticalRuler
+            height={canvasSize.height * zoom}
+            mouseY={rulerHover.axis === 'y' && rulerHover.show ? rulerHover.value : mousePosition.y * zoom}
+            showGuideline={rulerHover.axis === 'y' && rulerHover.show}
             zoom={zoom}
-            offset={30}
-            mousePosition={mousePosition}
+            onRulerMouseMove={y => setRulerHover({ show: true, x: 40, y: y + 8, axis: 'y', value: Math.round(y / zoom) })}
+            onRulerMouseLeave={() => setRulerHover({ show: false, x: 0, y: 0, axis: null, value: 0 })}
           />
         </div>
-
         {/* Main canvas area */}
         <div className="flex-1 flex flex-col">
           {/* Horizontal ruler */}
-          <div className="h-8 bg-gray-100 border-b border-gray-200">
-            <Ruler 
-              orientation="horizontal" 
-              length={canvasSize.width} 
+          <div className="h-8 bg-gray-100 border-b border-gray-200 relative">
+            <HorizontalRuler
+              width={canvasSize.width * zoom}
+              mouseX={rulerHover.axis === 'x' && rulerHover.show ? rulerHover.value : mousePosition.x * zoom}
+              showGuideline={rulerHover.axis === 'x' && rulerHover.show}
               zoom={zoom}
-              offset={8}
-              mousePosition={mousePosition}
+              onRulerMouseMove={x => setRulerHover({ show: true, x: x + 8, y: 40, axis: 'x', value: Math.round(x / zoom) })}
+              onRulerMouseLeave={() => setRulerHover({ show: false, x: 0, y: 0, axis: null, value: 0 })}
             />
           </div>
-
           {/* Canvas container */}
           <div 
             ref={containerRef}
@@ -175,15 +190,19 @@ export const DesignCanvas = () => {
                 mousePosition={mousePosition}
                 canvasSize={canvasSize}
                 zoom={zoom}
-                showGuides={showGuides && hasObjects}
+                showGuides={showGuides}
               />
-              
+              {/* Movable outlined frame */}
+              <MovableFrame
+                frameSize={canvasSize}
+                zoom={zoom}
+                label={Object.values(screenSizes).find(s => s.width === canvasSize.width && s.height === canvasSize.height)?.label || 'Custom'}
+              />
               <canvas ref={canvasRef} />
             </div>
           </div>
         </div>
       </div>
-
       {/* Status bar */}
       <div className="bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between text-sm text-gray-600">
         <div className="flex items-center gap-4">
