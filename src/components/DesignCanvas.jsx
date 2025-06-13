@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Rect, Circle, Text } from "fabric";
+import { Canvas as FabricCanvas, Rect, Circle, Text, Line } from "fabric";
 import { Toolbar } from "./Toolbar";
 import { Ruler } from "./Ruler";
 import { ScreenSizeSelector } from "./ScreenSizeSelector";
@@ -74,7 +74,7 @@ export const DesignCanvas = () => {
 
     // Vertical lines
     for (let i = 0; i <= width; i += gridSize) {
-      const line = new fabric.Line([i, 0, i, height], {
+      const line = new Line([i, 0, i, height], {
         stroke: '#e5e7eb',
         strokeWidth: 1,
         selectable: false,
@@ -86,7 +86,7 @@ export const DesignCanvas = () => {
 
     // Horizontal lines
     for (let i = 0; i <= height; i += gridSize) {
-      const line = new fabric.Line([0, i, width, i], {
+      const line = new Line([0, i, width, i], {
         stroke: '#e5e7eb',
         strokeWidth: 1,
         selectable: false,
