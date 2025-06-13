@@ -1,4 +1,3 @@
-
 export const AxisGuides = ({ mousePosition, canvasSize, zoom, showGuides }) => {
   if (!showGuides) return null;
 
