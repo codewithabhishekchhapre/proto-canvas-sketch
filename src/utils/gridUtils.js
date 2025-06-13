@@ -36,6 +36,6 @@ export const addGridToCanvas = (canvas) => {
   // Add all grid lines to canvas
   gridLines.forEach(line => {
     canvas.add(line);
-    canvas.sendToBack(line); // Send each line to back individually
+    canvas.sendObjectToBack(line); // Use correct Fabric.js v6 method
   });
 };
