@@ -1,15 +1,15 @@
 
-import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Rect, Circle, Text, Line } from "fabric";
+import { useRef, useState } from "react";
 import { Toolbar } from "./Toolbar";
 import { Ruler } from "./Ruler";
 import { ScreenSizeSelector } from "./ScreenSizeSelector";
 import { toast } from "sonner";
+import { useCanvas } from "../hooks/useCanvas";
+import { useCanvasTools } from "../hooks/useCanvasTools";
 
 export const DesignCanvas = () => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const [fabricCanvas, setFabricCanvas] = useState(null);
   const [activeTool, setActiveTool] = useState("select");
   const [activeColor, setActiveColor] = useState("#3b82f6");
   const [showGrid, setShowGrid] = useState(true);
@@ -25,125 +25,26 @@ export const DesignCanvas = () => {
     custom: { width: 1200, height: 800, label: "Custom" }
   };
 
-  useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
+  // Initialize canvas with placeholder mouse down handler
+  const fabricCanvas = useCanvas(
+    canvasRef,
+    canvasSize,
+    showGrid,
+    activeTool,
+    setMousePosition,
+    () => {} // Placeholder that will be replaced
+  );
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: canvasSize.width,
-      height: canvasSize.height,
-      backgroundColor: "#ffffff",
-      selection: activeTool === "select",
+  // Initialize canvas tools hook
+  const { handleMouseDown } = useCanvasTools(fabricCanvas, activeColor, setActiveTool);
+
+  // Update the canvas mouse down handler when fabricCanvas and tools are ready
+  if (fabricCanvas && fabricCanvas.off) {
+    fabricCanvas.off('mouse:down');
+    fabricCanvas.on('mouse:down', (e) => {
+      handleMouseDown(e, activeTool);
     });
-
-    // Add grid background
-    if (showGrid) {
-      addGridToCanvas(canvas);
-    }
-
-    // Mouse tracking
-    canvas.on('mouse:move', (e) => {
-      const pointer = canvas.getPointer(e.e);
-      setMousePosition({ x: Math.round(pointer.x), y: Math.round(pointer.y) });
-    });
-
-    // Tool interactions
-    canvas.on('mouse:down', (e) => {
-      if (activeTool === "rectangle") {
-        addRectangle(canvas, e);
-      } else if (activeTool === "circle") {
-        addCircle(canvas, e);
-      } else if (activeTool === "text") {
-        addText(canvas, e);
-      }
-    });
-
-    setFabricCanvas(canvas);
-
-    return () => {
-      canvas.dispose();
-    };
-  }, [canvasSize, showGrid, activeTool, activeColor]);
-
-  const addGridToCanvas = (canvas) => {
-    const gridSize = 20;
-    const width = canvas.getWidth();
-    const height = canvas.getHeight();
-
-    // Create grid lines
-    const gridLines = [];
-
-    // Vertical lines
-    for (let i = 0; i <= width; i += gridSize) {
-      const line = new Line([i, 0, i, height], {
-        stroke: '#e5e7eb',
-        strokeWidth: 1,
-        selectable: false,
-        evented: false,
-        excludeFromExport: true
-      });
-      gridLines.push(line);
-    }
-
-    // Horizontal lines
-    for (let i = 0; i <= height; i += gridSize) {
-      const line = new Line([0, i, width, i], {
-        stroke: '#e5e7eb',
-        strokeWidth: 1,
-        selectable: false,
-        evented: false,
-        excludeFromExport: true
-      });
-      gridLines.push(line);
-    }
-
-    gridLines.forEach(line => canvas.add(line));
-    canvas.sendToBack(...gridLines);
-  };
-
-  const addRectangle = (canvas, e) => {
-    const pointer = canvas.getPointer(e.e);
-    const rect = new Rect({
-      left: pointer.x - 50,
-      top: pointer.y - 25,
-      width: 100,
-      height: 50,
-      fill: activeColor,
-      stroke: '#374151',
-      strokeWidth: 1,
-    });
-    canvas.add(rect);
-    canvas.setActiveObject(rect);
-    setActiveTool("select");
-  };
-
-  const addCircle = (canvas, e) => {
-    const pointer = canvas.getPointer(e.e);
-    const circle = new Circle({
-      left: pointer.x - 30,
-      top: pointer.y - 30,
-      radius: 30,
-      fill: activeColor,
-      stroke: '#374151',
-      strokeWidth: 1,
-    });
-    canvas.add(circle);
-    canvas.setActiveObject(circle);
-    setActiveTool("select");
-  };
-
-  const addText = (canvas, e) => {
-    const pointer = canvas.getPointer(e.e);
-    const text = new Text('Text', {
-      left: pointer.x,
-      top: pointer.y,
-      fill: activeColor,
-      fontSize: 16,
-      fontFamily: 'Arial',
-    });
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    setActiveTool("select");
-  };
+  }
 
   const handleZoom = (newZoom) => {
     if (fabricCanvas) {
